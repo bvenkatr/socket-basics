@@ -21,19 +21,14 @@ io.on('connection', function (socket) {
     socket.on('message', function (message) {
         console.log('Message received: ' + message.text);
         message.timestamp = getTimestamp();  
-        
-        //console.log(getMomentTimestamp(message.timestamp).local().format());
-        
         io.emit('message', message);
     });
     
     var message = {
+        name: 'System',
         text: 'Welcome to the chat application!',
         timestamp: getTimestamp()
     };
-    
-    //console.log(getMomentTimestamp(message.timestamp).local().format());
-    
     socket.emit('message', message);
 });
 
