@@ -15,13 +15,25 @@ var getMomentTimestamp = function (inUtc) {
     return moment.utc(inUtc);
 };
 
+var clientInfo = {};
+
 io.on('connection', function (socket) {
     console.log('User connected via socket.io!');
+    
+    socket.on('joinRoom', function (req) {
+        clientInfo[socket.id] = req;
+        socket.join(req.room);
+        socket.broadcast.to(req.room).emit('message', {
+            name: 'System',
+            text: req.name + ' has joined!',
+            timestamp: getTimestamp()
+        });
+    });
     
     socket.on('message', function (message) {
         console.log('Message received: ' + message.text);
         message.timestamp = getTimestamp();  
-        io.emit('message', message);
+        io.to(clientInfo[socket.id].room).emit('message', message);
     });
     
     var message = {

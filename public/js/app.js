@@ -1,11 +1,18 @@
 var name = getQueryVariable('name') || 'Anonymous';
-var room = getQueryVariable('room');
+var room = getQueryVariable('room') || 'Default';
 var socket = io();
 
 console.log(name + ' wants to join ' + room); 
 
+$('.room-title').text(room);
+
 socket.on('connect', function () {
     console.log('Connected to socket.io server!');
+    
+    socket.emit('joinRoom', {
+        name: name,
+        room: room
+    });
 });
 
 socket.on('message', function (message) {
@@ -43,7 +50,7 @@ function getQueryVariable(variable) {
     for (var i = 0; i < vars.length; i++) {
         var pair = vars[i].split('=');
         if (decodeURIComponent(pair[0]) == variable) {
-            return decodeURIComponent(pair[1]);
+            return decodeURIComponent(pair[1].replace(/\+/g, ' '));
         }
     }
     
