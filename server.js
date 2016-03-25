@@ -6,7 +6,10 @@ var io = require('socket.io')(http);
 var moment = require('moment');
 
 app.use(express.static(__dirname + '/public'));
+var clientInfo = {};
 
+//--------------------------
+// Helper functions - begin
 var getTimestamp = function () {
     return moment().valueOf();
 };
@@ -15,19 +18,26 @@ var getMomentTimestamp = function (inUtc) {
     return moment.utc(inUtc);
 };
 
-var clientInfo = {};
+var createSystemMessage = function (textMessage) {
+    return {
+        name: 'System',
+        text: textMessage,
+        timestamp: getTimestamp()
+    };
+};
+// Helper functions - end
+//--------------------------
 
 io.on('connection', function (socket) {
     console.log('User connected via socket.io!');
+    socket.emit('message', 
+        createSystemMessage('Welcome to the chat application!'));
     
     socket.on('joinRoom', function (req) {
         clientInfo[socket.id] = req;
         socket.join(req.room);
-        socket.broadcast.to(req.room).emit('message', {
-            name: 'System',
-            text: req.name + ' has joined!',
-            timestamp: getTimestamp()
-        });
+        socket.broadcast.to(req.room).emit('message', 
+            createSystemMessage(req.name + ' has joined!'));
     });
     
     socket.on('message', function (message) {
@@ -36,12 +46,16 @@ io.on('connection', function (socket) {
         io.to(clientInfo[socket.id].room).emit('message', message);
     });
     
-    var message = {
-        name: 'System',
-        text: 'Welcome to the chat application!',
-        timestamp: getTimestamp()
-    };
-    socket.emit('message', message);
+    socket.on('disconnect', function () {
+        var userData = clientInfo[socket.id];
+        
+        if(typeof userData !== 'undefined') {
+            socket.leave(userData.room);
+            socket.broadcast.to(userData.room).emit('message',
+                createSystemMessage(userData.name + ' has left!'));
+            delete clientInfo[socket.id];
+        }
+    });
 });
 
 http.listen(PORT, function() {
