@@ -10,6 +10,7 @@ var clientInfo = {};
 
 //--------------------------
 // Helper functions - begin
+
 var getTimestamp = function () {
     return moment().valueOf();
 };
@@ -25,6 +26,27 @@ var createSystemMessage = function (textMessage) {
         timestamp: getTimestamp()
     };
 };
+
+var sendCurrentUsers = function (socket) {
+    var info = clientInfo[socket.id];
+    var users = [];
+    
+    if(typeof info === 'undefined') {
+        return;
+    }
+    
+    var keys = Object.keys(clientInfo);
+    keys.forEach(function (socketId) {
+        var userInfo = clientInfo[socketId];
+        
+        if(userInfo.room === info.room) {
+            users.push(userInfo.name);
+        }
+    });
+    
+    socket.emit('message', createSystemMessage('Current users: ' + users.join(', ')));
+}; 
+
 // Helper functions - end
 //--------------------------
 
@@ -42,8 +64,13 @@ io.on('connection', function (socket) {
     
     socket.on('message', function (message) {
         console.log('Message received: ' + message.text);
-        message.timestamp = getTimestamp();  
-        io.to(clientInfo[socket.id].room).emit('message', message);
+        
+        if(message.text === '@currentUsers') {
+            sendCurrentUsers(socket);
+        } else {
+            message.timestamp = getTimestamp();  
+            io.to(clientInfo[socket.id].room).emit('message', message);
+        }
     });
     
     socket.on('disconnect', function () {
